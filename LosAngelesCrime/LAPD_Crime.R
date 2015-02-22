@@ -1,0 +1,176 @@
+getwd()
+setwd('/Users/Ankoor/Desktop/ML with R/LA Crime')
+
+library(ggmap)
+library(ggplot2)
+
+# Read Data
+crime <- read.csv("LAPD_Crime_and_Collision_Raw_Data_for_2013.csv", stringsAsFactors = FALSE)
+
+# Cleaning Location Column
+crime$Location <- gsub("\\(|\\)", "", crime$Location.1)
+temp_1 <- sapply(strsplit(crime$Location, ", ", fixed = TRUE), "[",1)
+temp_2 <- sapply(strsplit(crime$Location, ", ", fixed = TRUE), "[",2)
+crime$Lat <- as.numeric(temp_1)
+crime$Long <- as.numeric(temp_2)
+
+
+# Removing Unnecessary Columns
+names(crime)
+keep <- c('DATE.OCC', 'TIME.OCC','AREA.NAME', 'Crm.Cd','Crm.Cd.Desc', 'Lat', 'Long')
+crime <- crime[keep]
+
+str(crime)
+
+# Cleaning Date Column
+crime$DATE.OCC <- as.Date(crime$DATE.OCC, "%m/%d/%Y")
+crime$Day <- weekdays(crime$DATE.OCC)
+
+
+
+
+
+
+
+
+crime$Quarter <- crime$TIME.OCC
+
+crime$TIME.OCC[which(crime$TIME.OCC < 100)] <- 1
+crime$TIME.OCC[which(crime$TIME.OCC >= 100 & crime$TIME.OCC < 200)] <- 2
+crime$TIME.OCC[which(crime$TIME.OCC >= 200 & crime$TIME.OCC < 300)] <- 3
+crime$TIME.OCC[which(crime$TIME.OCC >= 300 & crime$TIME.OCC < 400)] <- 4
+crime$TIME.OCC[which(crime$TIME.OCC >= 400 & crime$TIME.OCC < 500)] <- 5
+crime$TIME.OCC[which(crime$TIME.OCC >= 500 & crime$TIME.OCC < 600)] <- 6
+crime$TIME.OCC[which(crime$TIME.OCC >= 600 & crime$TIME.OCC < 700)] <- 7
+crime$TIME.OCC[which(crime$TIME.OCC >= 700 & crime$TIME.OCC < 800)] <- 8
+crime$TIME.OCC[which(crime$TIME.OCC >= 800 & crime$TIME.OCC < 900)] <- 9
+crime$TIME.OCC[which(crime$TIME.OCC >= 900 & crime$TIME.OCC < 1000)] <- 10
+crime$TIME.OCC[which(crime$TIME.OCC >= 1000 & crime$TIME.OCC < 1100)] <- 11
+crime$TIME.OCC[which(crime$TIME.OCC >= 1100 & crime$TIME.OCC < 1200)] <- 12
+crime$TIME.OCC[which(crime$TIME.OCC >= 1200 & crime$TIME.OCC < 1300)] <- 13
+crime$TIME.OCC[which(crime$TIME.OCC >= 1300 & crime$TIME.OCC < 1400)] <- 14
+crime$TIME.OCC[which(crime$TIME.OCC >= 1400 & crime$TIME.OCC < 1500)] <- 15
+crime$TIME.OCC[which(crime$TIME.OCC >= 1500 & crime$TIME.OCC < 1600)] <- 16
+crime$TIME.OCC[which(crime$TIME.OCC >= 1600 & crime$TIME.OCC < 1700)] <- 17
+crime$TIME.OCC[which(crime$TIME.OCC >= 1700 & crime$TIME.OCC < 1800)] <- 18
+crime$TIME.OCC[which(crime$TIME.OCC >= 1800 & crime$TIME.OCC < 1900)] <- 19
+crime$TIME.OCC[which(crime$TIME.OCC >= 1900 & crime$TIME.OCC < 2000)] <- 20
+crime$TIME.OCC[which(crime$TIME.OCC >= 2000 & crime$TIME.OCC < 2100)] <- 21
+crime$TIME.OCC[which(crime$TIME.OCC >= 2100 & crime$TIME.OCC < 2200)] <- 22
+crime$TIME.OCC[which(crime$TIME.OCC >= 2200 & crime$TIME.OCC < 2300)] <- 23
+crime$TIME.OCC[which(crime$TIME.OCC >= 2300)] <- 24
+
+
+
+crime$Quarter[which(crime$TIME.OCC < 600)] <- 'First'
+crime$Quarter[which(crime$TIME.OCC >= 600 & crime$TIME.OCC < 1200)] <- 'Second'
+crime$Quarter[which(crime$TIME.OCC >= 1200 & crime$TIME.OCC < 1800)] <- 'Third'
+crime$Quarter[which(crime$TIME.OCC >= 1800)] <- 'Fourth'
+
+
+
+names(crime)[2]<-"Time"
+
+# Get Longitude and Latitude
+geocode("Los Angeles") 
+
+LA = c(lon = -118.2437, lat =  34.05223)
+LA.map = get_map(location = LA, zoom = 11, maptype = 'terrain')
+
+
+ggmap(LA.map, extent = "normal", maprange=FALSE) %+% crime + aes(x = Long, y = Lat) + 
+        stat_density2d(aes(fill = ..level.., alpha = ..level..), size = 5, bins = 20, geom = 'polygon') + 
+        #scale_fill_gradient(low = "#feb24c", high = "#d73027", name = "Crime\nDensity")) + 
+        scale_fill_continuous(low = 'black', high = 'red', name = "Crime\nDensity") +
+        scale_alpha(range = c(0.05, 0.25), guide = FALSE) + 
+        coord_map(projection = "mercator", 
+                  xlim = c(attr(LA.map, "bb")$ll.lon, attr(LA.map, "bb")$ur.lon), 
+                  ylim = c(attr(LA.map, "bb")$ll.lat, attr(LA.map, "bb")$ur.lat)) + 
+        theme(legend.justification=c(1,0), legend.position=c(1,0),axis.title = element_blank(), text = element_text(size = 14)) 
+        
+
+
+
+str(crime)
+collision <- subset(crime, Crm.Cd.Desc == 'TRAFFIC DR #')
+names(collision)[5]<-"Collision"
+
+traffic$Traffic_Violation <- factor(traffic$Traffic_Violation)
+str(traffic)
+
+
+LA.map = qmap(location = LA, zoom = 11, source = "stamen", maptype = 'toner')#, color = 'bw', legend = 'topright')
+LA.map + geom_point(data = collision, aes(x = Long, y = Lat), size = 2, alpha = 0.1, color = "#0c2c84") +
+        facet_wrap(~ Quarter)
+
+LA.map <- get_map(location = LA, zoom = 12, source = "stamen", maptype = "toner", crop = FALSE)
+
+
+geocode("Hollywood") 
+LA = c(lon = -118.3287, lat =  34.09281)
+LA.map = get_map(location = LA, zoom = 11, maptype = 'terrain')
+
+ggmap(LA.map, extent = "normal", maprange=FALSE) %+% collision + aes(x = Long, y = Lat) + 
+        stat_density2d(aes(fill = ..level.., alpha = ..level..), size = 2, bins = 15, geom = 'polygon') + 
+        scale_fill_gradient(low = "red", high = "#081d58", name = "Collision\nDensity") + 
+        scale_alpha(range = c(0.05, 0.3), guide = FALSE) + 
+        coord_map(projection = "mercator", 
+                  xlim = c(attr(LA.map, "bb")$ll.lon, attr(LA.map, "bb")$ur.lon), 
+                  ylim = c(attr(LA.map, "bb")$ll.lat, attr(LA.map, "bb")$ur.lat)) + 
+        theme(legend.justification=c(1,0), legend.position=c(1,0),axis.title = element_blank(), text = element_text(size = 14))
+
+
+
+geocode("Vernon, CA")
+LA = c(lon = -118.2301, lat =  34.0039)
+LA.map = get_map(location = LA, zoom = 12, maptype = 'terrain')
+ggmap(LA.map, extent = "normal", maprange=FALSE) %+% violent + aes(x = Long, y = Lat) + 
+        stat_density2d(aes(fill = ..level.., alpha = ..level..), size = 2, bins = 10, geom = 'polygon') + 
+        scale_fill_gradient(low = "black", high = "red", name = "Violent Crime\nDensity") + 
+        scale_alpha(range = c(0.05, 0.3), guide = FALSE) + 
+        coord_map(projection = "mercator", 
+                  xlim = c(attr(LA.map, "bb")$ll.lon, attr(LA.map, "bb")$ur.lon), 
+                  ylim = c(attr(LA.map, "bb")$ll.lat, attr(LA.map, "bb")$ur.lat)) + 
+        theme(legend.justification=c(1,0), legend.position=c(1,0),axis.title = element_blank(), text = element_text(size = 14)) 
+       
+
+
+
+violent <- subset(crime, Crm.Cd.Desc == 'ROBBERY' | Crm.Cd.Desc == 'ASSAULT WITH DEADLY WEAPON, AGGRAVATED ASSAULT' |
+                          Crm.Cd.Desc == 'RAPE, ATTEMPTED' | Crm.Cd.Desc == 'CRIMINAL HOMICIDE' | 
+                          Crm.Cd.Desc == 'CRIMINAL HOMICIDE' | Crm.Cd.Desc == 'ASSAULT WITH DEADLY WEAPON ON POLICE OFFICER' |
+                                 Crm.Cd.Desc == 'RAPE, FORCIBLE' | Crm.Cd.Desc == 'HOMICIDE (NON-UCR)')
+
+
+names(violent)[5] <-"Violent"
+
+violent$Violent <- factor(violent$Violent)
+
+LA.map = qmap(location = LA, zoom = 11, source = "stamen", maptype = 'toner')
+LA.map + geom_point(data = violent, aes(x = Long, y = Lat), size = 2, alpha = 0.1, color = "#1d91c0") +
+facet_wrap(~ Time)
+
+
+LA.map = qmap(location = LA, zoom = 11, source = "stamen", maptype = 'toner')
+LA.map + geom_point(data = violent, aes(x = Long, y = Lat), size = 2, alpha = 0.1, color = "red") +
+        facet_wrap(~ Day)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
